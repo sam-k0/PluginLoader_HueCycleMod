@@ -21,6 +21,7 @@ bool           gInitialized         = false;// a simple boolean that gets set to
 
 /*
     Returns a new vec3 of colors
+    I yoinked this from the internet when searching HSV to RGB c++.
 */
 vec3* HSVtoRGB(float H, float S,float V){
     if(H>360 || H<0 || S>100 || S<0 || V>100 || V<0){
@@ -56,6 +57,11 @@ vec3* HSVtoRGB(float H, float S,float V){
     int B = (b+m)*255;
 
     return new vec3(R,G,B);
+}
+
+string Vec3toString(vec3* color)
+{
+    return "["+std::to_string(color->red)+","+std::to_string(color->green)+","+std::to_string(color->blue) + "]";
 }
 
 /** \brief This method gets called only once upon initializing the plugin. Do not call this method manually.
@@ -97,12 +103,6 @@ gmx PLUGIN_RESULT init(const char* loaderpath, const char* pluginName)
 
     gYYC_CallbackHandler->setData(gmu::string_to_constcharptr(gPluginName), "count", "0");
 
-    // Custom code for init
-    for(int i = 0; i < 31; i++)
-    {
-        leds[i] = vec3();
-    }
-
     return PLUGIN_SUCCESS;
 }
 
@@ -119,13 +119,14 @@ gmx PLUGIN_RESULT call(double arg)
         return PLUGIN_NOT_INITIALIZED;
     }
 
-
-
     
+    // As the vec3 is allocated on heap, dont forget to destroy it!
     vec3* color = HSVtoRGB(0, 100,100);
 
-    string asJList = "["+std::to_string(color->red)+","+std::to_string(color->green)+","+std::to_string(color->blue) + "]"
+    // build a json-compatible list from the color.. as thats what the main program uses.
+    string asJList = Vec3toString(color);
 
+    // Set an entry for all leds in the ds_map (0-31) with the json string 
     for( int i = 0; i < 31; i++)
     {
         gYYC_CallbackHandler->setData(  gmu::string_to_constcharptr(gPluginName),
@@ -133,6 +134,7 @@ gmx PLUGIN_RESULT call(double arg)
                                         gmu::string_to_constcharptr(asJList));
     }
 
+    // Push the color to the Loader. 
     gYYC_CallbackHandler->setData(gmu::string_to_constcharptr(gPluginName), "count", "31");
 
     // Clean before exiting
